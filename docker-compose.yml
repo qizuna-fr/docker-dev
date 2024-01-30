@@ -18,6 +18,20 @@ services:
     networks:
       - qizuna_network
 
+  phpmyadmin:
+    container_name: phpmyadmin_local
+    image: phpmyadmin/phpmyadmin
+    environment:
+      PMA_HOST: mysql8
+      PMA_USER: root
+      PMA_PASSWORD: password
+    ports:
+      - '8080:80'
+    networks:
+      - qizuna_network
+    depends_on:
+      - mysql8
+
   ###> symfony/mailer ###
   mailer:
     container_name: mailer_local
