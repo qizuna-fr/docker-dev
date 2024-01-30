@@ -1,0 +1,86 @@
+version: '3.3'
+services:
+
+  mysql8:
+    container_name: mysql_local
+    image: 'arm64v8/mysql'
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      #MARIADB_DATABASE: qizuna
+    ports:
+      # To allow the host machine to access the ports below, modify the lines below.
+      # For example, to allow the host to connect to port 3306 on the container, you would change
+      # "3306" to "3306:3306". Where the first port is exposed to the host and the second is the container port.
+      # See https://docs.docker.com/compose/compose-file/compose-file-v3/#ports for more information.
+      - '3306:3306'
+    volumes:
+      - data-v8:/var/lib/mysql
+    networks:
+      - qizuna_network
+
+  ###> symfony/mailer ###
+  mailer:
+    container_name: mailer_local
+    image: schickling/mailcatcher
+    ports:
+      - "1025:1025"
+      - "1080:1080"
+    networks:
+      - qizuna_network
+  ###< symfony/mailer ###
+
+  gotenberg:
+    container_name: gotenberg_local
+    image: thecodingmachine/gotenberg:8
+    ports:
+      - 3000:3000
+    networks:
+      - qizuna_network
+
+  meilisearch:
+    container_name: meilisearch_local
+    image: getmeili/meilisearch
+    ports:
+      - "7700:7700"
+    environment:
+      MEILI_MASTER_KEY: qizuna
+      MEILI_CONFIG_FILE_PATH: /config/config.toml
+    volumes:
+      - ./var/meili_data:/meili_data
+      - ./config/meilisearch:/config
+    networks:
+      - qizuna_network
+
+  minio:
+    container_name: s3_local
+    image: 'minio/minio:latest'
+    ports:
+      - '9000:9000'
+      - '8900:8900'
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: password
+    volumes:
+      - './data/minio:/data/minio'
+    command: 'minio server /data/minio --console-address ":8900"'
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - '-f'
+        - 'http://localhost:9000/minio/health/live'
+      retries: 3
+      timeout: 5s
+
+volumes:
+  data:
+  data-v8:
+  sessions:
+  minio:
+    driver: local
+
+
+networks:
+  qizuna_network:
+    driver: bridge
+

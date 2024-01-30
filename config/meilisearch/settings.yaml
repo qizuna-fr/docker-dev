@@ -1,0 +1,6 @@
+#PhoneCall:
+#  displayedAttributes: [ "id", "caller" , "message" , "emailRecipient" , "registeredBy", "contact"]
+#  searchableAttributes: [ "id", "caller" , "message" , "emailRecipient" , "registeredBy", "contact"]
+#  sortableAttributes: ["registered_at" , 'acknowledged_at']
+
+
