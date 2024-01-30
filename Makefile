@@ -59,17 +59,17 @@ help: ## Show this help.
 #---------------------------------------------#
 
 ## === 🐋  DOCKER ================================================
-docker-up: ## Start docker containers.
+start: ## Start docker containers.
 	$(DOCKER_COMPOSE_UP)
-.PHONY: docker-up
+.PHONY: start
 
-docker-stop: ## Stop docker containers.
+stop: ## Stop docker containers.
 	$(DOCKER_COMPOSE_STOP)
-.PHONY: docker-stop
+.PHONY: stop
 
-docker-recreate:
+recreate:
 	$(DOCKER_COMPOSE_UP) --force-recreate --remove-orphans
-.PHONY: docker-recreate
+.PHONY: recreate
 
 
 
