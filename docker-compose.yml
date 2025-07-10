@@ -1,12 +1,12 @@
-version: '3.3'
 services:
 
   mysql8:
     container_name: mysql_local
-    image: 'arm64v8/mysql'
+    image: 'mysql:8.2'
+    platform: linux/amd64
     environment:
       MYSQL_ROOT_PASSWORD: password
-      #MARIADB_DATABASE: qizuna
+    restart: always
     ports:
       # To allow the host machine to access the ports below, modify the lines below.
       # For example, to allow the host to connect to port 3306 on the container, you would change
@@ -20,13 +20,15 @@ services:
 
   phpmyadmin:
     container_name: phpmyadmin_local
-    image: phpmyadmin/phpmyadmin
+    image: arm64v8/phpmyadmin
     environment:
       PMA_HOST: mysql8
       PMA_USER: root
       PMA_PASSWORD: password
+      UPLOAD_LIMIT: 500M
     ports:
       - '8080:80'
+    restart: always
     networks:
       - qizuna_network
     depends_on:
@@ -39,6 +41,7 @@ services:
     ports:
       - "1025:1025"
       - "1080:1080"
+    restart: always
     networks:
       - qizuna_network
   ###< symfony/mailer ###
@@ -46,6 +49,7 @@ services:
   gotenberg:
     container_name: gotenberg_local
     image: thecodingmachine/gotenberg:8
+    restart: always
     ports:
       - 3000:3000
     networks:
@@ -53,7 +57,8 @@ services:
 
   meilisearch:
     container_name: meilisearch_local
-    image: getmeili/meilisearch
+    image: getmeili/meilisearch:v1.1.0
+    restart: always
     ports:
       - "7700:7700"
     environment:
@@ -65,26 +70,70 @@ services:
     networks:
       - qizuna_network
 
+  redis:
+    container_name: redis
+    image: redis
+    restart: always
+    volumes:
+      - ./redis.conf:/usr/local/etc/redis/redis.conf
+    command: [ "redis-server", "/usr/local/etc/redis/redis.conf" ]
+    ports:
+      - "6379:6379"
+    networks:
+      - qizuna_network
+
   minio:
     container_name: s3_local
-    image: 'minio/minio:latest'
+    image: 'quay.io/minio/minio:RELEASE.2023-07-07T07-13-57Z'
+    restart: always
     ports:
-      - '9000:9000'
-      - '8900:8900'
+      - '9900:9000'
+      - '9901:9001'
     environment:
       MINIO_ROOT_USER: minio
       MINIO_ROOT_PASSWORD: password
     volumes:
-      - './data/minio:/data/minio'
-    command: 'minio server /data/minio --console-address ":8900"'
+      # - './data/minio:/data/minio'
+       - './data/minio2:/data/minio'
+    command: 'minio server /data/minio --console-address ":9001"'
     healthcheck:
       test:
         - CMD
         - curl
         - '-f'
-        - 'http://localhost:9000/minio/health/live'
+        - 'http://localhost:9901/minio/health/live'
       retries: 3
       timeout: 5s
+
+  rabbitmq:
+    container_name: rabbitmq_local
+    image: rabbitmq:3-management
+    restart: always
+    ports:
+      - "5672:5672"  # Port pour AMQP
+      - "15672:15672"  # Port pour l'interface de gestion
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    networks:
+      - qizuna_network
+
+  ngrok:
+    container_name: ngrok_static
+    image: ngrok/ngrok:latest
+    network_mode: bridge
+    extra_hosts:
+      - "host.docker.internal:host-gateway"   # permet de résoudre host.docker.internal vers l’hôte
+    environment:
+      NGROK_AUTHTOKEN: "2zg6MK6qc1yQNxBzm3pZBmRz1uT_52PRDWYJVjVGKn8jzhNvf"
+    command: >
+      http
+      --url=drake-organic-raccoon.ngrok-free.app
+      --authtoken=2zg6MK6qc1yQNxBzm3pZBmRz1uT_52PRDWYJVjVGKn8jzhNvf
+      --host-header=localhost:8000
+      host.docker.internal:8000
+    ports:
+      - "4040:4040"
 
 volumes:
   data:
